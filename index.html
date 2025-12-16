@@ -94,36 +94,4 @@
         answers.push({ question: questions[i], value: val });
       }
 
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = true;
-      btn.innerText = "送信中..."; // 押した瞬間表示を変える
-
-      liff.getProfile().then(profile => {
-        const postData = {
-          mode: "diagnosis",
-          userId: profile.userId,
-          role: role,
-          answers: answers
-        };
-
-        fetch(GAS_API_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(postData)
-        })
-        .then(() => {
-          // ★修正ポイント: alertを出さずに即座に閉じる
-          liff.closeWindow(); 
-        })
-        .catch(err => {
-          // エラー時だけは表示する
-          alert("送信エラー: " + err);
-          btn.disabled = false;
-          btn.innerText = "再送信";
-        });
-      });
-    }
-  </script>
-</body>
-</html>
+      const btn = document.getElemen
