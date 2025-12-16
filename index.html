@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>カスハラ対策診断</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; }
+    h2 { text-align: center; color: #00b900; }
+    .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .question { font-weight: bold; margin-bottom: 10px; display: block; }
+    .btn { background-color: #06c755; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .btn:disabled { background-color: #ccc; }
+    #status { text-align: center; margin-top: 10px; font-size: 12px; color: #666; }
+    select { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h2>🛡️ カスハラ対策チェック</h2>
+  <div id="form-container">
+    <div class="card">
+      <span class="question">あなたの立場を選択してください</span>
+      <select id="role">
+        <option value="経営者">経営者・管理者</option>
+        <option value="スタッフ">スタッフ・職員</option>
+      </select>
+    </div>
+    <div id="questions-area"></div>
+    <button id="submit-btn" class="btn" onclick="submitForm()">診断してAIに相談する</button>
+  </div>
+  <p id="status">LINEログイン中...</p>
+
+  <script>
+    // ▼▼ ここ設定 ▼▼
+    const MY_LIFF_ID = '2008705180-p9GbufqO'; 
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzxCmKqDptziWA0EkRSq45qDkEy9a7F64qXEYqZJgMdnExUfpYp_8vaXmm7aj1OxIcR-A/exec'; // さっきコピーしたGASのURL
+
+    const questions = [
+      "①カスハラ対策マニュアルはありますか？",
+      "②入職時に対策を教えてますか？",
+      "③カスハラ対策研修してますか？",
+      "④カスハラ対策研修、非常勤職員含む全職員受講していますか？",
+      "⑤カスハラ対策グッズはありますか？",
+      "⑥カスハラ相談窓口はありますか？",
+      "⑦カスハラの定義が言えますか？",
+      "⑧カスハラに関するカンファレンスはしてますか？",
+      "⑨カスハラ対策を定期的に見直していますか？",
+      "⑩カスハラをしてくる利用者家族に書面などで注意をしていますか？"
+    ];
+
+    window.onload = function() {
+      const area = document.getElementById('questions-area');
+      questions.forEach((q, index) => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <span class="question">${q}</span>
+          <div class="options">
+            <label><input type="radio" name="q${index}" value="Yes"> Yes</label>
+            <label><input type="radio" name="q${index}" value="No"> No</label>
+          </div>
+        `;
+        area.appendChild(div);
+      });
+      initializeLiff(MY_LIFF_ID);
+    };
+
+    function initializeLiff(liffId) {
+      liff.init({ liffId: liffId })
+        .then(() => {
+          if (!liff.isLoggedIn()) {
+            liff.login();
+          } else {
+            document.getElementById('status').innerText = "準備完了";
+          }
+        })
+        .catch((err) => {
+          document.getElementById('status').innerText = "エラー: " + err;
+        });
+    }
+
+    function submitForm() {
+      if (!liff.isLoggedIn()) { liff.login(); return; }
+
+      const role = document.getElementById('role').value;
+      const answers = [];
+      // (省略：回答取得ロジックは同じなのでそのまま)
+      for (let i = 0; i < questions.length; i++) {
+        const radios = document.getElementsByName(`q${i}`);
+        let val = null;
+        for (const r of radios) { if (r.checked) val = r.value; }
+        if (!val) { alert("全て回答してください"); return; }
+        answers.push({ question: questions[i], value: val });
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerText = "送信中...";
+
+      liff.getProfile().then(profile => {
+        // GASへ送信するデータを作成（JSON形式）
+        // ※GASのdoPostは通常イベントオブジェクト形式を期待しますが、
+        // 既存のdoPostがLINEのWebhook形式を前提にしているため、
+        // 今回は診断専用のフラグをつけて送ります。
+        
+        const postData = {
+          mode: "diagnosis", // 診断モード
+          userId: profile.userId,
+          role: role,
+          answers: answers
+        };
+
+        // fetchを使ってGASに送信！
+        fetch(GAS_API_URL, {
+          method: 'POST',
+          mode: 'no-cors', // 重要: GASへのPOSTはno-cors
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postData)
+        })
+        .then(() => {
+          // no-corsなのでレスポンスの中身は見れませんが、送信成功とみなして閉じる
+          alert("診断を受け付けました！LINEに結果が届くまでお待ち下さい。");
+          liff.closeWindow();
+        })
+        .catch(err => {
+          alert("送信エラー: " + err);
+          btn.disabled = false;
+        });
+      });
+    }
+  </script>
+</body>
+</html>
