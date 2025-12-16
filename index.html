@@ -96,9 +96,9 @@
 
       const btn = document.getElementById('submit-btn');
       
-      // ボタンを無効化し、メッセージを変更
+      // ボタンを押した瞬間の見た目変更
       btn.disabled = true;
-      btn.innerText = "送信しました！(1秒後に閉じます)";
+      btn.innerText = "送信しました！";
 
       liff.getProfile().then(profile => {
         const postData = {
@@ -108,7 +108,7 @@
           answers: answers
         };
 
-        // 1. データ送信を開始
+        // 1. データ送信（非同期で投げっぱなし）
         fetch(GAS_API_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -116,10 +116,11 @@
           body: JSON.stringify(postData)
         });
 
-        // 2. 1秒後に強制的に閉じる
+        // 2. ほぼ即座（0.1秒後）に閉じる
+        // ※完全に0秒にすると通信前に閉じてしまう可能性があるため、体感即座の0.1秒に設定
         setTimeout(() => {
           liff.closeWindow();
-        }, 1000);
+        }, 100);
       })
       .catch(err => {
         alert("エラー: " + err);
