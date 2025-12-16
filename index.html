@@ -32,9 +32,9 @@
   <p id="status">LINEログイン中...</p>
 
   <script>
-    // ▼▼ ここ設定 ▼▼
+    // ▼▼ ここを自分のものに書き換えてください ▼▼
     const MY_LIFF_ID = '2008705180-p9GbufqO'; 
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzxCmKqDptziWA0EkRSq45qDkEy9a7F64qXEYqZJgMdnExUfpYp_8vaXmm7aj1OxIcR-A/exec'; // さっきコピーしたGASのURL
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzxCmKqDptziWA0EkRSq45qDkEy9a7F64qXEYqZJgMdnExUfpYp_8vaXmm7aj1OxIcR-A/exec'; // GASのウェブアプリURL
 
     const questions = [
       "①カスハラ対策マニュアルはありますか？",
@@ -85,7 +85,7 @@
 
       const role = document.getElementById('role').value;
       const answers = [];
-      // (省略：回答取得ロジックは同じなのでそのまま)
+      
       for (let i = 0; i < questions.length; i++) {
         const radios = document.getElementsByName(`q${i}`);
         let val = null;
@@ -96,36 +96,31 @@
 
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
-      btn.innerText = "送信中...";
+      btn.innerText = "送信中..."; // 押した瞬間表示を変える
 
       liff.getProfile().then(profile => {
-        // GASへ送信するデータを作成（JSON形式）
-        // ※GASのdoPostは通常イベントオブジェクト形式を期待しますが、
-        // 既存のdoPostがLINEのWebhook形式を前提にしているため、
-        // 今回は診断専用のフラグをつけて送ります。
-        
         const postData = {
-          mode: "diagnosis", // 診断モード
+          mode: "diagnosis",
           userId: profile.userId,
           role: role,
           answers: answers
         };
 
-        // fetchを使ってGASに送信！
         fetch(GAS_API_URL, {
           method: 'POST',
-          mode: 'no-cors', // 重要: GASへのPOSTはno-cors
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(postData)
         })
         .then(() => {
-          // no-corsなのでレスポンスの中身は見れませんが、送信成功とみなして閉じる
-          alert("診断を受け付けました！LINEに結果が届くまでお待ち下さい。");
-          liff.closeWindow();
+          // ★修正ポイント: alertを出さずに即座に閉じる
+          liff.closeWindow(); 
         })
         .catch(err => {
+          // エラー時だけは表示する
           alert("送信エラー: " + err);
           btn.disabled = false;
+          btn.innerText = "再送信";
         });
       });
     }
